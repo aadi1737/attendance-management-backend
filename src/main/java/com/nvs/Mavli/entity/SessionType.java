@@ -1,8 +1,11 @@
 package com.nvs.Mavli.entity;
 
 public enum SessionType {
-    CLASS,
+    CLASS,              // class teacher ke liye
     MORNING_PT,
-    MESS,
-    NIGHT_ASSEMBLY
+    BREAKFAST,
+    LUNCH,
+    GAMES,
+    DINNER,
+    NIGHT_ROLL_CALL
 }

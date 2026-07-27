@@ -2,6 +2,7 @@ package com.nvs.Mavli.service;
 
 import com.nvs.Mavli.dto.UserRequestDTO;
 import com.nvs.Mavli.dto.UserResponseDTO;
+import com.nvs.Mavli.entity.Role;
 import com.nvs.Mavli.entity.UserEntity;
 import com.nvs.Mavli.entity.UserRoleMapping;
 import com.nvs.Mavli.repository.UserRepository;
@@ -11,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,5 +55,20 @@ public class UserService {
         dto.setPhone(user.getPhone());
         dto.setRoles(roles);
         return dto;
+    }
+
+    public List<UserResponseDTO> getUsersByRoles(List<Role> roles) {
+        List<UserRoleMapping> mappings = userRoleMappingRepository.findByRoleIn(roles);
+
+        Map<UUID, UserEntity> uniqueUsers = mappings.stream()
+                .collect(Collectors.toMap(
+                        m -> m.getUser().getId(),
+                        UserRoleMapping::getUser,
+                        (existing, replacement) -> existing  // duplicate mile to purana hi rakho
+                ));
+
+        return uniqueUsers.values().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

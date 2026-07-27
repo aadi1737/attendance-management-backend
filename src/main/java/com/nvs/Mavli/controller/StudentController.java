@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/students")
@@ -16,9 +17,9 @@ public class StudentController {
 
     private final StudentService studentService;
 
-    @PostMapping
+    @PostMapping("/byAD")
     public ResponseEntity<StudentResponseDTO> createStudent(@RequestBody StudentRequestDTO request) {
-        return ResponseEntity.ok(studentService.createStudent(request));
+        return ResponseEntity.ok(studentService.createStudentByAD(request));
     }
 
 
@@ -38,5 +39,20 @@ public class StudentController {
     public ResponseEntity<List<StudentResponseDTO>> getStudentsByHouse(
             @RequestParam String house) {
         return ResponseEntity.ok(studentService.getStudentsByHouse(house));
+    }
+
+    @PostMapping
+    public ResponseEntity<StudentResponseDTO> createStudent(
+            @RequestBody StudentRequestDTO request,
+            Authentication authentication) {
+        String phone = authentication.getName();  // JWT filter se already set ho raha hai
+        return ResponseEntity.ok(studentService.createStudent(request, phone));
+    }
+
+    @PatchMapping("/{id}/photo")
+    public ResponseEntity<StudentResponseDTO> updatePhoto(
+            @PathVariable UUID id,
+            @RequestParam String photoUrl) {
+        return ResponseEntity.ok(studentService.updatePhoto(id, photoUrl));
     }
 }

@@ -1,8 +1,6 @@
 package com.nvs.Mavli.controller;
 
-import com.nvs.Mavli.dto.AttendanceMarkRequestDTO;
-import com.nvs.Mavli.dto.AttendanceSummaryDTO;
-import com.nvs.Mavli.dto.StudentAttendanceStatusDTO;
+import com.nvs.Mavli.dto.*;
 import com.nvs.Mavli.entity.SessionType;
 import com.nvs.Mavli.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -80,5 +79,20 @@ public class AttendanceController {
             @RequestParam String date,
             @RequestParam SessionType sessionType) {
         return ResponseEntity.ok(attendanceService.getAllHouseSummaries(LocalDate.parse(date), sessionType));
+    }
+
+    @PostMapping("/house-session/mark")
+    public ResponseEntity<HouseSessionSummaryDTO> markHouseSession(
+            @RequestBody HouseSessionMarkRequestDTO request,
+            Authentication authentication) {
+        return ResponseEntity.ok(attendanceService.markHouseSession(request, authentication.getName()));
+    }
+
+    @GetMapping("/house-session/summary")
+    public ResponseEntity<HouseSessionSummaryDTO> getHouseSessionSummary(
+            @RequestParam String house,
+            @RequestParam String date,
+            @RequestParam SessionType sessionType) {
+        return ResponseEntity.ok(attendanceService.getHouseSessionSummary(house, LocalDate.parse(date), sessionType));
     }
 }

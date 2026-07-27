@@ -1,12 +1,8 @@
 package com.nvs.Mavli.service;
 
-import com.nvs.Mavli.dto.AttendanceMarkRequestDTO;
-import com.nvs.Mavli.dto.AttendanceSummaryDTO;
-import com.nvs.Mavli.dto.StudentAttendanceStatusDTO;
+import com.nvs.Mavli.dto.*;
 import com.nvs.Mavli.entity.*;
-import com.nvs.Mavli.repository.AttendanceRepository;
-import com.nvs.Mavli.repository.LeaveRepository;
-import com.nvs.Mavli.repository.StudentRepository;
+import com.nvs.Mavli.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +20,8 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final LeaveRepository leaveRepository;
+    private final HouseSessionAttendanceRepository houseSessionAttendanceRepository;   // field add kar
+    private final UserRepository userRepository;
 
     public String markAttendance(AttendanceMarkRequestDTO request) {
         for (AttendanceMarkRequestDTO.StudentAttendanceEntry entry : request.getStudents()) {
@@ -196,5 +194,70 @@ public class AttendanceService {
         return houses.stream()
                 .map(house -> getHouseSummary(house, date, sessionType))
                 .collect(Collectors.toList());
+    }
+
+
+
+    public HouseSessionSummaryDTO markHouseSession(HouseSessionMarkRequestDTO request, String markedByPhone) {
+        List<Student> students = studentRepository.findByHouse(request.getHouse());
+        int totalStudents = students.size();
+
+        int onLeaveCount = (int) students.stream()
+                .filter(s -> !leaveRepository.findActiveLeave(s.getId(), request.getDate()).isEmpty())
+                .count();
+
+        int expectedToMark = totalStudents - onLeaveCount;
+
+        if (request.getPresentCount() + request.getAbsentCount() != expectedToMark) {
+            throw new RuntimeException("Count mismatch: present + absent should equal " + expectedToMark +
+                    " (total " + totalStudents + " - on leave " + onLeaveCount + ")");
+        }
+
+        UserEntity markedBy = userRepository.findByPhone(markedByPhone)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        HouseSessionAttendance record = houseSessionAttendanceRepository
+                .findByHouseAndDateAndSessionType(request.getHouse(), request.getDate(), request.getSessionType())
+                .orElse(new HouseSessionAttendance());
+
+        record.setHouse(request.getHouse());
+        record.setDate(request.getDate());
+        record.setSessionType(request.getSessionType());
+        record.setPresentCount(request.getPresentCount());
+        record.setAbsentCount(request.getAbsentCount());
+        record.setMarkedBy(markedBy);
+
+        houseSessionAttendanceRepository.save(record);
+
+        HouseSessionSummaryDTO summary = new HouseSessionSummaryDTO();
+        summary.setHouse(request.getHouse());
+        summary.setTotalStudents(totalStudents);
+        summary.setOnLeave(onLeaveCount);
+        summary.setExpectedToMark(expectedToMark);
+        summary.setPresentCount(request.getPresentCount());
+        summary.setAbsentCount(request.getAbsentCount());
+        return summary;
+    }
+
+    public HouseSessionSummaryDTO getHouseSessionSummary(String house, LocalDate date, SessionType sessionType) {
+        List<Student> students = studentRepository.findByHouse(house);
+        int totalStudents = students.size();
+
+        int onLeaveCount = (int) students.stream()
+                .filter(s -> !leaveRepository.findActiveLeave(s.getId(), date).isEmpty())
+                .count();
+
+        HouseSessionAttendance record = houseSessionAttendanceRepository
+                .findByHouseAndDateAndSessionType(house, date, sessionType)
+                .orElse(null);
+
+        HouseSessionSummaryDTO summary = new HouseSessionSummaryDTO();
+        summary.setHouse(house);
+        summary.setTotalStudents(totalStudents);
+        summary.setOnLeave(onLeaveCount);
+        summary.setExpectedToMark(totalStudents - onLeaveCount);
+        summary.setPresentCount(record != null ? record.getPresentCount() : 0);
+        summary.setAbsentCount(record != null ? record.getAbsentCount() : 0);
+        return summary;
     }
 }
