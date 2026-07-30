@@ -9,5 +9,5 @@ public class LoginResponseDTO {
     private String token;
     private UUID userId;
     private String name;
-    private List<String> roles;   // e.g. ["TEACHER", "HOUSE_MASTER"]
+    private List<RoleInfoDTO> roles;   // e.g. ["TEACHER", "HOUSE_MASTER"]
 }

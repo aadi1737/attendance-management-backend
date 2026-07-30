@@ -2,6 +2,7 @@ package com.nvs.Mavli.service;
 
 import com.nvs.Mavli.dto.LoginRequestDTO;
 import com.nvs.Mavli.dto.LoginResponseDTO;
+import com.nvs.Mavli.dto.RoleInfoDTO;
 import com.nvs.Mavli.entity.UserEntity;
 import com.nvs.Mavli.entity.UserRoleMapping;
 import com.nvs.Mavli.repository.UserRepository;
@@ -32,9 +33,12 @@ public class AuthService {
         }
 
         List<UserRoleMapping> mappings = userRoleMappingRepository.findByUserId(user.getId());
-        List<String> roles = mappings.stream()
-                .map(m -> m.getRole().name())
-                .collect(Collectors.toList());
+        List<RoleInfoDTO> roles = mappings.stream().map(m -> {
+            RoleInfoDTO r = new RoleInfoDTO();
+            r.setRole(m.getRole().name());
+            r.setRefValue(m.getRefValue());
+            return r;
+        }).collect(Collectors.toList());
 
         String token = jwtService.generateToken(user.getPhone());
 
