@@ -119,17 +119,24 @@ public class AttendanceService {
     }
 
     public AttendanceSummaryDTO getHouseSummary(String house, LocalDate date, SessionType sessionType) {
-        List<StudentAttendanceStatusDTO> list = getHouseAttendance(house, date, sessionType);
         List<Student> students = studentRepository.findByHouse(house);
+        int totalStudents = students.size();
+
+        int onLeaveCount = (int) students.stream()
+                .filter(s -> !leaveRepository.findActiveLeave(s.getId(), date).isEmpty())
+                .count();
+
+        HouseSessionAttendance record = houseSessionAttendanceRepository
+                .findByHouseAndDateAndSessionType(house, date, sessionType)
+                .orElse(null);
 
         AttendanceSummaryDTO summary = new AttendanceSummaryDTO();
         summary.setGroupName(house);
-        summary.setTotalStudents(list.size()); // ✅ Correct because list contains ALL students in house
-        summary.setPresent((int) list.stream().filter(s -> "PRESENT".equals(s.getStatus())).count());
-        summary.setAbsent((int) list.stream().filter(s -> "ABSENT".equals(s.getStatus())).count());
-        summary.setOnLeave((int) list.stream().filter(s -> "ON_LEAVE".equals(s.getStatus())).count());
+        summary.setTotalStudents(totalStudents);
+        summary.setPresent(record != null ? record.getPresentCount() : 0);
+        summary.setAbsent(record != null ? record.getAbsentCount() : 0);
+        summary.setOnLeave(onLeaveCount);
 
-        // ✅ Get house master name from first student's house master
         String houseMasterName = students.stream()
                 .findFirst()
                 .map(Student::getHouseMaster)
